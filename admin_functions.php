@@ -8,9 +8,8 @@ function easy_finance_custom_css() {
 
     $classes=array('#easy_finance_participantsdiv','#easy_finance_doc_typediv','#easy_finance_typediv','#easy_finance_taxdiv','#easy_finance_servicediv','#easy_finance_sourcediv');
 
-
     $screen = get_current_screen();
-    if ($screen->post_type=='easy_finances' && isset($_GET['post']))
+    if ($screen->post_type=='easy_finances')
     {
 
     $final=implode(',',$classes);
