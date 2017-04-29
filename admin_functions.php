@@ -55,14 +55,23 @@ add_action( 'easy_finance_participants_add_form_fields', 'easy_finance_field', 1
 function easy_finance_field($taxonomy) {
 $msg='<div class="form-field term-group form-required"><label for="easy_percent">Percent</label><input type="number" min="0" max="100"aria-required="true" class="postform" name="easy_percent" />';
 $msg.='</div>';
+$msg.='<div class="form-field term-group form-required"><label for="easy_percent_holder">Money Holder</label><input type="checkbox" value="1" aria-required="true" class="postform" name="easy_percent_holder" />';
+$msg.='</div>';
 echo $msg;
 }
 
 add_action( 'easy_finance_participants_edit_form_fields', 'easy_finance_field2', 10, 2 );
 
 function easy_finance_field2( $term, $taxonomy ){
-$val = get_term_meta( $term->term_id, 'easy_percent', true );
+$val = get_term_meta( $term->term_id, 'easy_percent', true ) ?: 0;
 echo '<tr class="form-field term-group-wrap form-required"><th scope="row"><label for="easy_percent">Percent</label></th><td><input type="number" min="0" aria-required="true" class="postform" name="easy_percent" value="'.$val.'"/></td></tr>';
+$val2 = get_term_meta( $term->term_id, 'easy_percent_holder', true ) ?: '';
+$ext='';
+if ($val2!='')
+{
+$ext=' checked="true"';
+}
+echo '<tr class="form-field term-group-wrap form-required"><th scope="row"><label for="easy_percent_holder">Money Holder</label></th><td><input type="checkbox" aria-required="true" class="postform" name="easy_percent_holder" value="1" '.$ext.'/></td></tr>';
 }
 
 
@@ -88,6 +97,8 @@ if (isset($_POST['taxonomy']))
     case 'easy_finance_participants':
       $priority=isset($_POST['easy_percent']) ? $_POST['easy_percent'] : 0;
       update_term_meta( $term_id, 'easy_percent',$priority);
+      $holder=isset($_POST['easy_percent_holder']) ? $_POST['easy_percent_holder'] : '';
+      update_term_meta( $term_id, 'easy_percent_holder',$holder);
       break;
     default:
       break;

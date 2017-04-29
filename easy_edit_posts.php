@@ -30,7 +30,25 @@ function easy_finance_analysis($post)
     $count=array();
     $msg2='';
     $tax_names=array();
-    $sum=array();
+    $sum=$last_sum=array();
+    $parts = get_terms( array('taxonomy' => 'easy_finance_participants',
+        'hide_empty' => false,
+) );
+    $taken=array();
+    $movements=get_field('movements', $post->ID);
+    if (!empty($movements))
+    {
+        foreach ($movements as $m)
+        {
+            if (!$taken[$m['participant']])
+                {
+                $taken[$m['participant']][0]=0;
+                $hold=get_term_meta($m['participant'],'easy_percent_holder',true) ?: 0;
+                $taken[$m['participant']][1]=$hold;
+                }
+            $taken[$m['participant']][0]+=absint($m['amount']);
+        }
+    }
     foreach ($arrs as $a=>$v)
     {
 
@@ -45,9 +63,11 @@ function easy_finance_analysis($post)
             {
                 case 'type':
                 case 'source':
+                $dd=0;
                 if ($aa=='type')
                 {
                     $msg.='<h4>Είδος Παραστατικών</h4>';
+                    $dd=1;
                 }
                 else
                 {
@@ -55,39 +75,103 @@ function easy_finance_analysis($post)
                 }
 
                 $msg.='<table><tr><th>Τίτλος</th><th>'.$ex['amount'][0].'</th><th>'.$ex['vat'][0].'</th><th>'.$ex['final'][0].'</th></tr>';
-
                 foreach ($b as $bb=>$bbb)
                 {
-                    $msg.='<tr><td>'.$tax_name[$bb].'</td><td>'.$bbb['amount'].'</td><td>'.$bbb['vat'].'</td><td>'.$bbb['final'].'</td></tr>';
+                    $msg.='<tr><td><strong>'.$tax_name[$bb].'</strong></td><td>'.$bbb['amount'].'</td><td>'.$bbb['vat'].'</td><td>'.$bbb['final'].'</td></tr>';
+                    if ($dd!=0)
+                    {
+
+                    foreach ($parts as $p)
+                    {
+                        $percent1=get_term_meta($p->term_id,'easy_percent',true) ?: 100;
+                        $percent=$percent1/100;
+
+                        $namp=round($sum['final']['income'][$aa][$bb]['amount']*$percent,2);
+                        $nvtp=round($sum['final']['income'][$aa][$bb]['vat']*$percent,2);
+                        $nflp=round($sum['final']['income'][$aa][$bb]['final']*$percent,2);
+
+                        $namm=round($sum['final']['expenses'][$aa][$bb]['amount']*$percent,2);
+                        $nvtm=round($sum['final']['expenses'][$aa][$bb]['vat']*$percent,2);
+                        $nflm=round($sum['final']['expenses'][$aa][$bb]['final']*$percent,2);
+                        $msg.='<tr><td colspan="4">'.$tax_name[$p->term_id].' ('.$percent1.'%) <small>Έσοδα/Έξοδα</small></td></tr>';
+                         $msg.='<tr><td><strong>Ποσοστό</strong></td><td>'.$namp.' / '.$namm.'</td><td>'.$nvtp.' / '.$nvtm.'</td><td>'.$nflp.' / '.$nflm.'</td></tr>';
+                        $msg.='<tr><td><strong>Κινήσεις</strong></td><td>'.$sum['final']['income']['participant'][$p->term_id][$bb]['amount'].' / '.$sum['final']['expenses']['participant'][$p->term_id][$bb]['amount'].'</td><td>'.$sum['final']['income']['participant'][$p->term_id][$bb]['vat'].' / '.$sum['final']['expenses']['participant'][$p->term_id][$bb]['vat'].'</td><td>'.$sum['final']['income']['participant'][$p->term_id][$bb]['final'].' / '.$sum['final']['expenses']['participant'][$p->term_id][$bb]['final'].'</td></tr>';
+
+
+                        $fnamp=$namp-$sum['final']['income']['participant'][$p->term_id][$bb]['amount'];
+                        $fnvtm=$nvtm-$sum['final']['income']['participant'][$p->term_id][$bb]['vat'];
+                        $fnflp=$nflp-$sum['final']['income']['participant'][$p->term_id][$bb]['final'];
+
+                        $fnamm=$namm-$sum['final']['expenses']['participant'][$p->term_id][$bb]['amount'];
+                        $fnvtm=$nvtm-$sum['final']['expenses']['participant'][$p->term_id][$bb]['vat'];
+                        $fnflm=$nflm-$sum['final']['expenses']['participant'][$p->term_id][$bb]['final'];
+                        $msg.='<tr><td><strong>Τελικά</strong></td><td>'.$fnamp.' / '.$fnamm.'</td><td>'.$fnvtp.' / '.$fnvtm.'</td><td>'.$fnflp.' / '.$fnflm.'</td></tr>';
+
+
+
+                        if (!isset($last_sum[$p->term_id]))
+                        {
+                            $last_sum[$p->term_id]['am']=$last_sum[$p->term_id]['vt']=$last_sum[$p->term_id]['fl']=0;
+                        }
+                        if (!isset($tax_name[$p->term_id]))
+                            {
+                            $tax_name[$p->term_id]=$p->name;
+                            }
+                        $last_sum[$p->term_id]['am']+=$fnamp-$fnamm;
+                        $last_sum[$p->term_id]['vt']+=$fnvtp-$fnvtm;
+                        $last_sum[$p->term_id]['fl']+=$fnflp-$fnflm;
+                    }
+                    $msg.='<tr><td colspan="4"><strong>-------------------</strong></td></tr>';
+                  }
+
                 }
+                if ($dd==1)
+                {
+                $msg.='<tr><td colspan="4"><strong>Ισοσκελισμός Ταμείου - Συναλλαγές Μετόχων</strong></td></tr>';
+                foreach ($last_sum as $vp=>$p)
+                    {
+                        $nameeee=$tax_name[$vp];
+                        $fnk=$p['fl'];
+                        if (isset($taken[$vp]))
+                        {
+
+                            if ($taken[$vp][1]==0)
+                                {
+                                $fnk-=$taken[$vp][0];
+                                $fnk.=' <small>('.$p['fl'].' - '.$taken[$vp][0].')</small>';
+                                }
+                            else
+                            {
+                                $nameeee.=' <small>(ταμείας)</small>';
+                            }
+                            $nameeee.=' - Εκταμιεύσεις: <strong>'.$taken[$vp][0].'</strong>';
+
+                        }
+                       $msg.='<tr><td>'.$nameeee.'</td><td>'.$p['am'].'</td><td>'.$p['vt'].'</td><td>'.$fnk.'</td></tr>';
+                    }
+
+                }
+
                 $msg.='</table>';
                 break;
                 case 'final':
                 $msg.='<h4>Συνολική Ταμειακή Κατάταση</h4>';
                 $msg.='<table><tr><th>Τίτλος</th><th>'.$ex['amount'][0].'</th><th>'.$ex['vat'][0].'</th><th>'.$ex['final'][0].'</th></tr>';
-                 foreach ($b as $bb=>$bbb)
-                {
-                    $msg.='<tr><td>'.$ex[$bb][0].'</td><td>'.$bbb['amount'].'</td><td>'.$bbb['vat'].'</td><td>'.$bbb['final'].'</td></tr>';
-                }
-                $msg.='</table>';
-                break;
-                default:
-                $msg.='<h4>Συναλλαγές Μετόχων</h4>';
-                $msg.='<table><tr><th>Τίτλος</th><th>Τύπος</th><th>'.$ex['amount'][0].'</th><th>'.$ex['vat'][0].'</th><th>'.$ex['final'][0].'</th></tr>';
                 foreach ($b as $bb=>$bbb)
                 {
-                    $percent1=get_term_meta($bb,'easy_percent',true) ?: 100;
-                        $percent=$percent1/100;
-                    foreach ($bbb as $bbbb=>$bbbbb)
+                    $msg.='<tr><td><strong>'.$ex[$bb][0].'</strong></td><td>'.$bbb['amount'].'</td><td>'.$bbb['vat'].'</td><td>'.$bbb['final'].'</td></tr>';
+                    /*foreach ($parts as $p)
                     {
+                        $percent1=get_term_meta($p->term_id,'easy_percent',true) ?: 100;
+                        $percent=$percent1/100;
+                        $cam=round($bbb['amount']*$percent,1);
+                        $cvat=round($bbb['vat']*$percent,2);
+                        $cfinal=round($bbb['final']*$percent,2);
+                        $msg.='<tr><td>'.$tax_name[$p->term_id].'</td><td>'.$cam.'</td><td>'.$cvat.'</td><td>'.$cfinal.'</td></tr>';
 
-                        $vt=round($sum['type'][$bbbb]['vat']*$percent,2)- $bbbbb['vat'];
-                        $at=round($sum['type'][$bbbb]['amount']*$percent,2)- $bbbbb['amount'];
-                        $fl=round($sum['type'][$bbbb]['final']*$percent,2)- $bbbbb['final'];
-                       $msg.='<tr><td>'.$tax_name[$bb].' ('.$percent1.'%)</td><td>'.$tax_name[$bbbb].'</td><td>'.$at.'</td><td>'.$vt.'</td><td>'.$fl.'</td></tr>';
-                    }
-
+                    }*/
                 }
+
                 $msg.='</table>';
                 break;
             }
@@ -126,19 +210,18 @@ function easy_finance_analysis($post)
                     $sum['final']['final']['vat']+=$d['vat'];
                     $sum['final']['final']['amount']+=$d['amount'];
                     $sum['final']['final']['final']+=$d['final'];
-                    $sum['final']['income']['vat']+=$d['vat'];
-                    $sum['final']['income']['amount']+=$d['amount'];
-                    $sum['final']['income']['final']+=$d['final'];
                     break;
                     default:
                     $sum['final']['final']['vat']-=$d['vat'];
                     $sum['final']['final']['amount']-=$d['amount'];
                     $sum['final']['final']['final']-=$d['final'];
-                    $sum['final']['expenses']['vat']+=$d['vat'];
-                    $sum['final']['expenses']['amount']+=$d['amount'];
-                    $sum['final']['expenses']['final']+=$d['final'];
+
                     break;
                 }
+
+                    $sum['final'][$a]['vat']+=$d['vat'];
+                    $sum['final'][$a]['amount']+=$d['amount'];
+                    $sum['final'][$a]['final']+=$d['final'];
 
 
 
@@ -187,29 +270,13 @@ function easy_finance_analysis($post)
 
                         $kd++;
 
-                        if (!isset($sum['participant'][$kl][$ll]))
-                    {
-                        $sum['participant'][$kl][$ll]=array('vat'=>0,'amount'=>0,'final'=>0);
-                    }
-                        switch ($a)
-                        {
-                            case 'income';
-                            $sum['participant'][$kl][$ll]['vat']+=$ivat;
-                            $sum['participant'][$kl][$ll]['amount']+=$iamount;
-                            $sum['participant'][$kl][$ll]['final']+=$ifinal;
-                            break;
-                            default:
-                            $sum['participant'][$kl][$ll]['vat']-=$ivat;
-                            $sum['participant'][$kl][$ll]['amount']-=$iamount;
-                            $sum['participant'][$kl][$ll]['final']-=$ifinal;
-                            break;
-                        }
-
-
-
-
-
-
+                        if (!isset($sum[$a]['participant'][$kl][$ll]))
+                            {
+                            $sum['final'][$a][$aa]['participant'][$kl][$ll]=array('vat'=>0,'amount'=>0,'final'=>0);
+                            }
+                            $sum['final'][$a]['participant'][$kl][$ll]['vat']+=$ivat;
+                            $sum['final'][$a]['participant'][$kl][$ll]['amount']+=$iamount;
+                            $sum['final'][$a]['participant'][$kl][$ll]['final']+=$ifinal;
                         }
                     }
 
@@ -229,7 +296,7 @@ function easy_finance_analysis($post)
                     {
                         if ($kl==0)
                         {
-                        $tax_name[$kl]='-';
+                        $tax_name[$kl]=' / ';
                         }
                         else
                         {
@@ -245,6 +312,7 @@ function easy_finance_analysis($post)
                     if (!isset($sum[$dd][$kl]))
                     {
                         $sum[$dd][$kl]=array('vat'=>0,'amount'=>0,'final'=>0);
+                        $sum['final'][$a][$dd][$kl]=array('vat'=>0,'amount'=>0,'final'=>0);
                     }
                         switch ($a)
                         {
@@ -259,6 +327,9 @@ function easy_finance_analysis($post)
                             $sum[$dd][$kl]['final']-=$ifinal;
                             break;
                         }
+                        $sum['final'][$a][$dd][$kl]['vat']+=$ivat;
+                        $sum['final'][$a][$dd][$kl]['amount']+=$iamount;
+                        $sum['final'][$a][$dd][$kl]['final']+=$ifinal;
                     }
 
                 }
