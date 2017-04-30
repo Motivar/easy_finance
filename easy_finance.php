@@ -3,7 +3,7 @@
 Plugin Name: Easy Finance
 Plugin URI: https://www.motivar.io
 Description: For cooperations
-Version: 0.0.1
+Version: 0.0.2
 Author: Anastasiou K., Giannopoulos N.
 Author URI: https://motivar.io
 Text Domain:       github-updater
@@ -58,12 +58,7 @@ function easy_finance_my_cpts()
         $names = easy_finance_custom_posts('all');
         foreach ($names as $n) {
             $chk          = $n['chk'];
-            $hierarchical = '';
-            if ($chk == 'true') {
-                $hierarchical = 'false';
-            } else {
-                $hierarchical = 'true';
-            }
+            $hierarchical = false;
             $labels = $args = array();
             $labels = array(
                 'name' => $n['pl'],

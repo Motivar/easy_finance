@@ -31,7 +31,7 @@ function easy_finance_custom_css() {
           }
 
     </style>';
-    echo '<script>jQuery(\''.$final.'\').remove();</script>';
+    echo '<script>jQuery(\''.$final.'\').remove(); </script>';
   }
 }
 
@@ -106,5 +106,29 @@ if (isset($_POST['taxonomy']))
 
   }
 }
+
+update_message_field('field_59061e8a89120', '<b>My message</b>');
+
+function update_message_field($field_key='', $message='')
+{
+  global $wpdb;
+
+  $table = $wpdb->prefix.'postmeta';
+  $field = $wpdb->get_results("SELECT * FROM $table WHERE meta_key = '$field_key'");
+  if($field)
+  {
+    $meta = unserialize($field[0]->meta_value);
+    $meta['message'] = $message;
+    $wpdb->update(
+      $table,
+      array(
+        'meta_value'=>serialize($meta)
+      ),
+      array('meta_key'=>$field_key),
+      array('%s')
+    );
+  }
+}
+
 
 
