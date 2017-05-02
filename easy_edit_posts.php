@@ -90,6 +90,7 @@ function easy_finance_analysis($post)
                 $msg.='<table><tr><th>Τίτλος</th><th>'.$ex['amount'][0].'</th><th>'.$ex['vat'][0].'</th><th>'.$ex['final'][0].'</th></tr>';
                 foreach ($b as $bb=>$bbb)
                 {
+                    $special_tax=get_term_meta($bb,'easy_percent',true) ?: 0;
                     $msg.='<tr><td><strong>'.$tax_name[$bb].'</strong></td><td>'.$bbb['amount'].'</td><td>'.$bbb['vat'].'</td><td>'.$bbb['final'].'</td></tr>';
                     if ($dd!=0)
                     {
@@ -116,13 +117,20 @@ function easy_finance_analysis($post)
                         $fnamm=$namm-$sum['final']['expenses']['participant'][$p->term_id][$bb]['amount'];
                         $fnvtm=$nvtm-$sum['final']['expenses']['participant'][$p->term_id][$bb]['vat'];
                         $fnflm=$nflm-$sum['final']['expenses']['participant'][$p->term_id][$bb]['final'];
+
                         $msg.='<tr><td><strong>Τελικά</strong></td><td>'.$fnamp.' / '.$fnamm.'</td><td>'.$fnvtp.' / '.$fnvtm.'</td><td>'.$fnflp.' / '.$fnflm.'</td></tr>';
-
-
-
                         if (!isset($last_sum[$p->term_id]))
                         {
                             $last_sum[$p->term_id]['am']=$last_sum[$p->term_id]['vt']=$last_sum[$p->term_id]['fl']=0;
+                        }
+                        if ($percentt[$p->term_id][1]==0 && $special_tax!=0)
+                        {
+                                $fff='Εισπράξεις* <small>μείωση λόγο <strong>φόρου '.$special_tax.'%</strong></small>';
+                                $ppp=$special_tax/100;
+                                $fnamp=round($fnamp-$fnamp*$ppp,2);
+                                $fnvtp=round($fnvtp-$fnvtp*$ppp,2);
+                                $fnflp=round($fnflp-$fnflp*$ppp,2);
+                                $msg.='<tr><td>'.$fff.'</td><td>'.$fnamp.'</td><td>'.$fnvtp.'</td><td>'.$fnflp.'</td></tr>';
                         }
 
                         $last_sum[$p->term_id]['am']+=$fnamp-$fnamm;
@@ -498,6 +506,18 @@ function custom_sorting2($query)
         }
 
     }
+
+
+      $screen = get_current_screen();
+    if( 'edit' == $screen->base
+    && 'easy_finances' == $screen->post_type
+    && !isset( $_GET['orderby'] ) ){
+        $query->set( 'orderby', 'title' );
+        $query->set( 'order', 'ASC' );
+    }
+
+
+
 }
 
 

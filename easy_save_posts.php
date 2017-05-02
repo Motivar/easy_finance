@@ -19,7 +19,7 @@ function easy_finance_acf($post_id)
             case 'easy_finances':
             $month=get_field('month');
             $year=get_field('year');
-            $name=date("F Y",mktime(0,0,0,$month,1,$year));
+            $name=date("m - Y (F)",mktime(0,0,0,$month,1,$year));
             if ($name!=$tttile)
             {
                 $changes['post_title']   = ucfirst($name);
