@@ -92,26 +92,52 @@ function easy_finance_analysis($post)
                 {
                     $special_tax=get_term_meta($bb,'easy_percent',true) ?: 0;
                     $msg.='<tr><td><strong>'.$tax_name[$bb].'</strong></td><td>'.$bbb['amount'].'</td><td>'.$bbb['vat'].'</td><td>'.$bbb['final'].'</td></tr>';
+
                     if ($dd!=0)
                     {
                     foreach ($parts as $p)
                     {
                         $percent1=$percentt[$p->term_id][0];
                         $percent=$percent1/100;
+                        if (isset($sum['final']['income'][$aa][$bb]))
+                        {
+
+
                         $namp=round($sum['final']['income'][$aa][$bb]['amount']*$percent,2);
                         $nvtp=round($sum['final']['income'][$aa][$bb]['vat']*$percent,2);
                         $nflp=round($sum['final']['income'][$aa][$bb]['final']*$percent,2);
-
+                        }
+                        else
+                        {
+                            $namp=$nvtp=$nflp=0;
+                        }
+                         if (isset($sum['final']['expenses'][$aa][$bb]))
+                        {
                         $namm=round($sum['final']['expenses'][$aa][$bb]['amount']*$percent,2);
                         $nvtm=round($sum['final']['expenses'][$aa][$bb]['vat']*$percent,2);
                         $nflm=round($sum['final']['expenses'][$aa][$bb]['final']*$percent,2);
+                        }
+                        else
+                        {
+                            $namm=$nvtm=$nflm=0;
+                        }
+
                         $msg.='<tr><td colspan="4">'.$tax_name[$p->term_id].' ('.$percent1.'%) <small>Έσοδα/Έξοδα</small></td></tr>';
                          $msg.='<tr><td><strong>Ποσοστό</strong></td><td>'.$namp.' / '.$namm.'</td><td>'.$nvtp.' / '.$nvtm.'</td><td>'.$nflp.' / '.$nflm.'</td></tr>';
+                         if (!isset($sum['final']['income']['participant'][$p->term_id][$bb]))
+                         {
+                            $sum['final']['income']['participant'][$p->term_id][$bb]=array('vat'=>0,'amount'=>0,'final'=>0);
+                         }
+                          if (!isset($sum['final']['expenses']['participant'][$p->term_id][$bb]))
+                         {
+                            $sum['final']['expenses']['participant'][$p->term_id][$bb]=array('vat'=>0,'amount'=>0,'final'=>0);
+                         }
+
                         $msg.='<tr><td><strong>Κινήσεις</strong></td><td>'.$sum['final']['income']['participant'][$p->term_id][$bb]['amount'].' / '.$sum['final']['expenses']['participant'][$p->term_id][$bb]['amount'].'</td><td>'.$sum['final']['income']['participant'][$p->term_id][$bb]['vat'].' / '.$sum['final']['expenses']['participant'][$p->term_id][$bb]['vat'].'</td><td>'.$sum['final']['income']['participant'][$p->term_id][$bb]['final'].' / '.$sum['final']['expenses']['participant'][$p->term_id][$bb]['final'].'</td></tr>';
 
 
                         $fnamp=$namp-$sum['final']['income']['participant'][$p->term_id][$bb]['amount'];
-                        $fnvtm=$nvtm-$sum['final']['income']['participant'][$p->term_id][$bb]['vat'];
+                        $fnvtp=$nvtp-$sum['final']['income']['participant'][$p->term_id][$bb]['vat'];
                         $fnflp=$nflp-$sum['final']['income']['participant'][$p->term_id][$bb]['final'];
 
                         $fnamm=$namm-$sum['final']['expenses']['participant'][$p->term_id][$bb]['amount'];
@@ -144,6 +170,7 @@ function easy_finance_analysis($post)
                 if ($dd==1)
                 {
                 $msg.='<tr><td colspan="4"><strong>Ισοσκελισμός Ταμείου - Συναλλαγές Μετόχων</strong></td></tr>';
+
                 foreach ($last_sum as $vp=>$p)
                     {
                         $nameeee=$tax_name[$vp];
@@ -156,13 +183,15 @@ function easy_finance_analysis($post)
                                 $fnk-=$taken[$vp][0];
                                 $fnk.=' <small>('.$p['fl'].' - '.$taken[$vp][0].')</small>';
                                 }
-                            else
-                            {
-                                $nameeee.=' <small>(ταμείας)</small>';
-                            }
                             $nameeee.=' - Εκταμιεύσεις: <strong>'.$taken[$vp][0].'</strong>';
 
                         }
+                        if ($percentt[$vp][1]==1)
+                        {
+                          $nameeee.=' <small>(ταμείας)</small>';
+                        }
+
+
                        $msg.='<tr><td>'.$nameeee.'</td><td>'.$p['am'].'</td><td>'.$p['vt'].'</td><td>'.$fnk.'</td></tr>';
                     }
 
@@ -284,10 +313,10 @@ function easy_finance_analysis($post)
                         $msg2.='<tr>'.$first.'<td>'.$tax_name[$ll].'</td><td>'.$iamount.'</td><td>'.$ivat.'</td><td>'.$ifinal.'</td></tr>';
 
                         $kd++;
-
                         if (!isset($sum[$a]['participant'][$kl][$ll]))
                             {
-                            $sum['final'][$a][$aa]['participant'][$kl][$ll]=array('vat'=>0,'amount'=>0,'final'=>0);
+                            $sum[$a]['participant'][$kl][$ll]=array('vat'=>0,'amount'=>0,'final'=>0);
+                            $sum['final'][$a]['participant'][$kl][$ll]=array('vat'=>0,'amount'=>0,'final'=>0);
                             }
                             $sum['final'][$a]['participant'][$kl][$ll]['vat']+=$ivat;
                             $sum['final'][$a]['participant'][$kl][$ll]['amount']+=$iamount;
@@ -482,36 +511,9 @@ function custom_sorting2($query)
     global $pagenow;
     $meta_query = $tax_query = array();
 
-    if (!is_admin())
-        return;
-    $orderby       = $query->get('orderby');
-    $columns_array = register_custom_columns();
-    if (!empty($columns_array)) {
-        foreach ($columns_array as $post_array) {
-            foreach ($post_array[1] as $s) {
-                if ($s[0] == $orderby) {
-                    $query->set('meta_key', $orderby);
-                    $type = 'meta_value';
-                    switch ($s[3]) {
-                        case 1:
-                            $type = 'meta_value_num';
-                            break;
-
-                        default:
-                            break;
-                    }
-                    $query->set('orderby', $type);
-                }
-            }
-        }
-
-    }
-
 
       $screen = get_current_screen();
-    if( 'edit' == $screen->base
-    && 'easy_finances' == $screen->post_type
-    && !isset( $_GET['orderby'] ) ){
+    if( isset($screen->base) && 'edit' == $screen->base && isset($screen->post_type) && 'easy_finances' == $screen->post_type && !isset( $_GET['orderby'] ) ){
         $query->set( 'orderby', 'title' );
         $query->set( 'order', 'ASC' );
     }
