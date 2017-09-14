@@ -35,20 +35,6 @@ function easy_finance_custom_css() {
   }
 }
 
-/*
-
-
- $option_page = acf_add_options_page(array(
-    'page_title'  => 'Έξοδα',
-    'menu_title'  => 'Έξοδα',
-    'menu_slug'   => 'wibee-expenses',
-    'capability'  => 'read',
-    'redirect'  => false
-  ));
-*/
-
-
-
 
 
 add_action( 'easy_finance_participants_add_form_fields', 'easy_finance_field', 10, 2 );

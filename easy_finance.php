@@ -150,6 +150,7 @@ if (is_admin())
 require_once('admin_functions.php');
 require_once('easy_edit_posts.php');
 require_once('easy_save_posts.php');
+require_once('easy_custom_parameters.php');
 }
 
 
